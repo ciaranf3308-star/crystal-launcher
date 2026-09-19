@@ -37,4 +37,7 @@ window/handheld/orientation=0
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+; Required for headless Android export: without this, EditorExportPlatformAndroid
+; fails can_export with an EMPTY "configuration errors" message on desktop hosts.
+textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.02, 0.03, 0.09, 1)

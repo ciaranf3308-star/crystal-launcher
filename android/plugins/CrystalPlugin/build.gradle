@@ -1,6 +1,6 @@
-// Build skeleton for the CrystalPlugin AAR.
-// PENDING: requires the Android SDK + Godot's godot-lib to compile.
-// This file documents the intended build; it has not been run.
+// Build file for the CrystalPlugin AAR.
+// Built in CI (.github/workflows/build-apk.yml): Gradle 8.10.2, AGP 8.5.2,
+// compileSdk 34, compileOnly org.godotengine:godot:4.4.1.stable.
 plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
