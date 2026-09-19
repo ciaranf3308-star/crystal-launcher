@@ -29,7 +29,7 @@ func load_all() -> bool:
 	load_error = ""
 	var path := _resolve_config_path()
 	if path == "":
-		load_error = "no crystal config found (tried --crystal-config=, user://crystal-config.path, res://poc-config.json)"
+		load_error = "no crystal config found (tried --crystal-config=, user://crystal-config.path, shared-storage scan, res://poc-config.json)"
 		return false
 	config_source = path
 	var cfg_text := _read_text(path)
@@ -129,9 +129,60 @@ func _resolve_config_path() -> String:
 		var p := _read_text(pointer).strip_edges()
 		if p != "" and FileAccess.file_exists(p):
 			return p
+	var found := _discover_config()
+	if found != "":
+		return found
 	if FileAccess.file_exists("res://poc-config.json"):
 		return "res://poc-config.json"
 	return ""
+
+
+## Config auto-discovery (Nova): the Manager writes config.json at the data
+## root, which is either <shared>/crystal-nova-data or a dedicated folder the
+## user picked. Scan mounted volumes so a fresh install finds the real
+## library with no manual path entry. Desktop-safe: no /storage, no scan.
+func _discover_config() -> String:
+	var volumes: Array[String] = []
+	if DirAccess.dir_exists_absolute("/storage"):
+		var d := DirAccess.open("/storage")
+		if d != null:
+			d.list_dir_begin()
+			var e := d.get_next()
+			while e != "":
+				if d.current_is_dir() and e != "self" and not e.begins_with("."):
+					volumes.append("/storage/" + e)
+				e = d.get_next()
+			d.list_dir_end()
+	for v in ["/sdcard", "/storage/emulated/0"]:
+		if not volumes.has(v):
+			volumes.append(v)
+	for v in volumes:
+		var direct := v + "/crystal-nova-data/config.json"
+		if _looks_like_crystal_config(direct):
+			return direct
+		var vd := DirAccess.open(v)
+		if vd == null:
+			continue
+		vd.list_dir_begin()
+		var child := vd.get_next()
+		while child != "":
+			if vd.current_is_dir() and not child.begins_with(".") and child != "Android":
+				var p := v + "/" + child + "/config.json"
+				if _looks_like_crystal_config(p):
+					vd.list_dir_end()
+					return p
+			child = vd.get_next()
+		vd.list_dir_end()
+	return ""
+
+
+func _looks_like_crystal_config(path: String) -> bool:
+	if not FileAccess.file_exists(path):
+		return false
+	var cfg: Variant = JSON.parse_string(_read_text(path))
+	if typeof(cfg) != TYPE_DICTIONARY:
+		return false
+	return int(cfg.get("version", 0)) == CONTRACT_VERSION and str(cfg.get("dataRoot", "")) != ""
 
 
 func _load_index(index_path: String) -> bool:
