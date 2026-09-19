@@ -101,11 +101,15 @@ class CrystalPlugin(godot: Godot) : GodotPlugin(godot) {
     fun providerContentUri(relativePath: String): String =
         providerUri(relativePath).toString()
 
+    /** Host activity, non-null once the engine is running. */
+    private fun requireActivity() =
+        getActivity() ?: throw IllegalStateException("CrystalPlugin: no host activity")
+
     /** True when [relativePath] exists in the Manager's library. */
     @UsedByGodot
     fun providerExists(relativePath: String): Boolean {
         return try {
-            val fd = getActivity().contentResolver
+            val fd = requireActivity().contentResolver
                 .openFileDescriptor(providerUri(relativePath), "r")
             fd?.close()
             fd != null
@@ -125,7 +129,7 @@ class CrystalPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun providerReadBytes(relativePath: String): ByteArray {
         return try {
-            getActivity().contentResolver
+            requireActivity().contentResolver
                 .openInputStream(providerUri(relativePath))?.use { it.readBytes() }
                 ?: ByteArray(0)
         } catch (t: Throwable) {
