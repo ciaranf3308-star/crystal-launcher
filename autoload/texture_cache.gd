@@ -127,10 +127,10 @@ func _worker() -> void:
 		var path: String = job[1]
 		var max_size: int = job[2]
 		var img: Image = null
-		if path.begins_with("saf://"):
-			# Android SAF grant: bytes come from the plugin's
-			# ContentResolver read; Godot's FileAccess can't see them.
-			var bytes: PackedByteArray = CrystalPlugin.saf_read_bytes(path.trim_prefix("saf://"))
+		if path.begins_with("cp://"):
+			# Android: bytes come from the Manager's ContentProvider via the plugin;
+			# Godot's FileAccess can't open content:// URIs.
+			var bytes: PackedByteArray = CrystalPlugin.provider_read_bytes(path.trim_prefix("cp://"))
 			img = _image_from_bytes(bytes)
 		elif FileAccess.file_exists(path):
 			img = Image.load_from_file(path)

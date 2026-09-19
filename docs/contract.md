@@ -180,3 +180,26 @@ No scraping, no ES-DE importing, no index writes, no profile authoring, no
 metafile generation. Configuration lives in the Manager. The launcher may
 keep a small local cache (thumbnails, last-selection) in its own app-private
 directory — never inside `crystal-nova-data/`.
+
+## 11. Android transport: Manager ContentProvider (2026-09-19)
+
+On Android the file layout above is NEVER accessed via raw /storage paths:
+scoped storage blocks cross-app raw access and the Manager's SAF grant does
+not transfer. Instead the Manager exposes its data tree through a
+ContentProvider; the launcher reads everything through it. The Manager is
+the sole owner of storage permission.
+
+- Authority: `io.crystalnova.manager.crystaldata`
+- URI form: `content://io.crystalnova.manager.crystaldata/<data-root-relative path>`
+  e.g. `content://io.crystalnova.manager.crystaldata/config.json`,
+  `.../index.json`, `.../launcher/profiles.json`,
+  `.../games/ps2/slug/front.png`, `.../games/ps2/slug/manifest.json`.
+- `rom/<romRelativePath>` maps to the ROM under the Manager's romRoot
+  (for the future emulator handoff — hand the content:// URI to the target
+  app with FLAG_GRANT_READ_URI_PERMISSION).
+- Access is restricted to the launcher package (`io.crystalnova.launcher`,
+  enforced via Binder calling-UID check in the provider).
+- The launcher performs zero storage setup: install Manager → BUILD →
+  install Launcher → open → library appears. No folder picker, no manual
+  file management.
+- Desktop/dev keeps raw file access (contract paths as-is).

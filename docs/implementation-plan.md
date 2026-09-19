@@ -64,19 +64,19 @@ keystore, headless `--export-release`) produces `crystal-launcher.apk`
 (verified: real APK, plugin class in classes.dex, arm64 Godot runtime).
 Local builds deprecated — CI is the only build path.
 
-Status 2026-09-19 (storage contract fix): first Nova boot proved the
-Manager's SAF grant does NOT transfer to the launcher (separate app) and
-raw /storage access is blocked by scoped storage — auto-discovery found
-nothing and the POC fixture's literal `/storage/XXXX-XXXX/` placeholder
-leaked into the error. Fixed properly: the launcher now holds its OWN
-persisted SAF grant. First launch shows a one-time system folder picker
-("SELECT CRYSTAL DATA FOLDER"); the plugin persists the tree URI and all
-reads (config.json, index.json, profiles.json, artwork bytes) go through
-the ContentResolver as tree-relative paths (`saf://` backend in
-CrystalData, SAF decode in TextureCache). No broad/all-files access. The
-`res://poc-config.json` fallback is now desktop-only — on Android without
-a grant the setup screen shows instead of fake data. Version 0.2.0-beta1
-(versionCode 2).
+Status 2026-09-19 (storage bridge, final): the launcher's own SAF grant
+/ folder picker was REJECTED — the user must never pick a folder. Final
+architecture: the Manager (io.crystalnova.manager) is the SOLE owner of
+storage permission and exposes its Crystal data tree through a
+ContentProvider (authority io.crystalnova.manager.crystaldata, caller
+restricted to the launcher package). The launcher reads config.json,
+index.json, profiles.json and all media as data-root-relative paths
+through that bridge (`cp://` backend in CrystalData, provider reads in
+CrystalPlugin, SAF-byte decode in TextureCache). No picker, no /storage
+paths, no broad storage permission on the launcher side. The
+`res://poc-config.json` fallback is desktop-only. `rom_content_uri()`
+returns grantable content:// URIs for the future emulator handoff
+(FLAG_GRANT_READ_URI_PERMISSION). Version 0.3.0-beta1 (versionCode 3).
 
 Work (launcher project, isolated):
 - Build `android/plugins/CrystalPlugin/` to AAR (needs Android SDK — local or CI).

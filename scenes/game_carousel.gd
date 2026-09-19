@@ -37,12 +37,13 @@ var _initialized := false
 func _ready() -> void:
 	Navigator.attach(self)
 	if OS.has_feature("android") and CrystalPlugin.is_available():
-		# The launcher is a separate app from the Manager: it holds its own
-		# persisted SAF grant to the Crystal data folder (one-time picker).
-		# Raw /storage paths are unusable under scoped storage, so without
-		# a grant the honest move is the setup screen — never POC data.
-		if not (CrystalPlugin.has_data_access() and CrystalData.enable_saf()):
-			Navigator.replace("res://scenes/setup_screen.tscn")
+		# The Manager owns storage and exposes its library through a
+		# ContentProvider; the launcher reads through that bridge. No
+		# folder picker, no /storage paths — install Manager, BUILD,
+		# open Launcher, library appears.
+		if not CrystalData.enable_provider():
+			Navigator.replace("res://scenes/failure_screen.tscn",
+				{"message": CrystalData.load_error, "fatal": true})
 			return
 	if not CrystalData.load_all():
 		Navigator.replace("res://scenes/failure_screen.tscn",
