@@ -57,6 +57,13 @@ against `docs/contract.md`; POC desktop run loads them via `--crystal-config`.
 ### Phase 2 — Plugin AAR + APK export pipeline
 Goal: an installable launcher that boots honestly on the Nova.
 
+Status 2026-09-19: CI pipeline GREEN. `.github/workflows/build-apk.yml`
+(pinned Godot 4.4.1 + export templates, Java 17, Android SDK 34 toolchain,
+Gradle-built CrystalPlugin AAR merged into the export, CI-generated debug
+keystore, headless `--export-release`) produces `crystal-launcher.apk`
+(verified: real APK, plugin class in classes.dex, arm64 Godot runtime).
+Local builds deprecated — CI is the only build path.
+
 Work (launcher project, isolated):
 - Build `android/plugins/CrystalPlugin/` to AAR (needs Android SDK — local or CI).
   Surface: `launchEmulator(profileJson, romPath)`, `getInstalledPackages()`,
@@ -65,9 +72,16 @@ Work (launcher project, isolated):
   (package `io.crystalnova.launcher`, landscape, GL Compatibility default),
   debug-signed beta APK.
 - Boot path: missing data → failure screen with the exact reason (already built).
+- SELF-UPDATE (standing user requirement, 2026-09-19): the launcher must
+  update through the app, never via manual APK downloads. CI publishes the
+  APK to a rolling release + manifest.json (versionCode authority); the
+  Godot app checks on boot, downloads the APK, and fires the install
+  intent through the plugin (REQUEST_INSTALL_PACKAGES + package installer
+  session). Same trust model as the Manager's dev-latest channel.
 
 Difficulty: Medium. Gate: APK installs on the Nova, boots to the failure screen
-when data is absent, finds real data when present. No 3D needed yet.
+when data is absent, finds real data when present, and self-updates from CI.
+No 3D needed yet.
 
 ### Phase 3 — HARDWARE VALIDATION GATE (go / no-go)
 Goal: replace speculation with numbers. Do this before authoring a single model.
