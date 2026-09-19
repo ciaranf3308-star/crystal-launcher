@@ -105,7 +105,7 @@ class CrystalPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun providerExists(relativePath: String): Boolean {
         return try {
-            val fd = godot.context.contentResolver
+            val fd = getActivity().contentResolver
                 .openFileDescriptor(providerUri(relativePath), "r")
             fd?.close()
             fd != null
@@ -125,7 +125,7 @@ class CrystalPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun providerReadBytes(relativePath: String): ByteArray {
         return try {
-            godot.context.contentResolver
+            getActivity().contentResolver
                 .openInputStream(providerUri(relativePath))?.use { it.readBytes() }
                 ?: ByteArray(0)
         } catch (t: Throwable) {
