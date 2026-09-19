@@ -66,6 +66,16 @@ func is_provider_available() -> bool:
 	return bool(_plugin.call("isProviderAvailable"))
 
 
+## Fine-grained bridge status for the failure UI: no_plugin |
+## no_activity | provider_missing | access_denied | config_missing |
+## config_unreadable | ok. Shown verbatim in the error so a failed bridge
+## names its stage instead of guessing.
+func get_provider_diagnostic() -> String:
+	if _plugin == null:
+		return "no_plugin"
+	return str(_plugin.call("providerDiagnostic"))
+
+
 ## The grantable content:// URI for a data-root-relative path
 ## ("rom/ps2/game.iso"). Reserved for the future emulator handoff (pass
 ## with FLAG_GRANT_READ_URI_PERMISSION instead of a raw /storage path).

@@ -8,6 +8,7 @@ import org.godotengine.godot.plugin.GodotPlugin
 import org.godotengine.godot.plugin.SignalInfo
 import org.godotengine.godot.plugin.UsedByGodot
 import org.json.JSONObject
+import java.io.FileNotFoundException
 
 /**
  * CrystalPlugin — the single Android native bridge for Crystal Launcher.
@@ -90,6 +91,41 @@ class CrystalPlugin(godot: Godot) : GodotPlugin(godot) {
      */
     @UsedByGodot
     fun isProviderAvailable(): Boolean = providerExists("config.json")
+
+    /**
+     * Fine-grained bridge status for the failure UI, so "install Manager /
+     * run BUILD" stops being one undifferentiated message. One of:
+     * no_activity | provider_missing | access_denied | config_missing |
+     * config_unreadable | ok
+     *
+     * provider_missing = the authority doesn't resolve (Manager not
+     * installed, or its provider isn't exported). access_denied = the
+     * provider rejected our UID (calling-package check). config_missing =
+     * provider answered but config.json isn't there (BUILD not run since
+     * the bridge update, or the export failed silently).
+     */
+    @UsedByGodot
+    fun providerDiagnostic(): String {
+        val activity = try {
+            requireActivity()
+        } catch (t: Throwable) {
+            return "no_activity"
+        }
+        return try {
+            activity.contentResolver
+                .openFileDescriptor(providerUri("config.json"), "r")?.close()
+            "ok"
+        } catch (e: SecurityException) {
+            "access_denied"
+        } catch (e: FileNotFoundException) {
+            if (e.message.orEmpty().contains("No content provider", ignoreCase = true))
+                "provider_missing"
+            else
+                "config_missing"
+        } catch (t: Throwable) {
+            "config_unreadable"
+        }
+    }
 
     /**
      * The grantable content:// URI for a data-root-relative path

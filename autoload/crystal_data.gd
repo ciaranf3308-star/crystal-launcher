@@ -44,7 +44,8 @@ func enable_provider() -> bool:
 	use_provider = false
 	load_error = ""
 	if not CrystalPlugin.is_provider_available():
-		load_error = "Crystal Nova Manager not found, or its library hasn't been built. Install the Manager, run BUILD, then reopen Crystal Launcher."
+		var diag := CrystalPlugin.get_provider_diagnostic()
+		load_error = "Crystal Nova Manager not found, or its library hasn't been built (bridge: %s). Install the Manager, run BUILD, then reopen Crystal Launcher." % diag
 		return false
 	use_provider = true
 	return true
@@ -55,7 +56,8 @@ func load_all() -> bool:
 	var path := _resolve_config_path()
 	if path == "":
 		if OS.has_feature("android"):
-			load_error = "Crystal Nova Manager not found, or its library hasn't been built. Install the Manager, run BUILD, then reopen Crystal Launcher."
+			var diag := CrystalPlugin.get_provider_diagnostic()
+			load_error = "Crystal Nova Manager not found, or its library hasn't been built (bridge: %s). Install the Manager, run BUILD, then reopen Crystal Launcher." % diag
 		else:
 			load_error = "no crystal config found (tried --crystal-config=, user://crystal-config.path, shared-storage scan, res://poc-config.json)"
 		return false
