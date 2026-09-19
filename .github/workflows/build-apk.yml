@@ -107,16 +107,19 @@ jobs:
           ls "$TPL" | head -20
           test -f "$TPL/android_release.apk"
 
-      - name: Generate debug keystore (beta signing key)
+      - name: Restore persistent beta signing key
+        env:
+          LAUNCHER_KEYSTORE_B64: ${{ secrets.LAUNCHER_KEYSTORE_B64 }}
         run: |
           set -eux
-          # Matches keystore/release* in export_presets.cfg. Debug key is fine:
-          # this is a beta/test build, never a store release.
-          keytool -genkeypair -v \
-            -keystore /home/runner/debug.keystore \
-            -alias androiddebugkey -storepass android -keypass android \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Android Debug, O=Android, C=US"
+          # Matches keystore/release* in export_presets.cfg. One persistent
+          # beta key (stored as a repo secret) so every CI build installs
+          # cleanly over the previous one. Debug-grade key: beta/test
+          # builds only, never a store release.
+          test -n "$LAUNCHER_KEYSTORE_B64"
+          echo "$LAUNCHER_KEYSTORE_B64" | base64 -d > /home/runner/debug.keystore
+          keytool -list -keystore /home/runner/debug.keystore \
+            -storepass android -alias androiddebugkey | head -5
 
       - name: Export Android APK (headless)
         run: |
