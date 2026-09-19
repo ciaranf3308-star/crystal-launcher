@@ -1,0 +1,5 @@
+[config]
+
+name="CrystalPlugin"
+binary_type="local"
+binary="CrystalPlugin.aar"

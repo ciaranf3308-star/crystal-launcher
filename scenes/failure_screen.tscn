@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cq7x0crystal02"]
+
+[ext_resource type="Script" path="res://scenes/failure_screen.gd" id="1_fs"]
+
+[node name="FailureScreen" type="CanvasLayer"]
+script = ExtResource("1_fs")
