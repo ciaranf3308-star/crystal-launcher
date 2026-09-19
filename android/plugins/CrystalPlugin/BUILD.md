@@ -25,24 +25,42 @@ Pinned toolchain (see the workflow for exact versions):
 | Export templates | 4.4.1-stable |
 | godot-lib (plugin compileOnly) | `org.godotengine:godot:4.4.1.stable` (Maven Central, verified published) |
 
-Pipeline steps:
+Pipeline steps (all verified against Godot 4.4.1-stable source,
+`platform/android/export/export_plugin.cpp`):
 
 1. Build the plugin: `gradle assembleRelease` in `android/plugins/CrystalPlugin`
    → `build/outputs/aar/CrystalPlugin-release.aar`.
-2. Copy it to `android/plugins/CrystalPlugin/CrystalPlugin.aar` — the
-   `CrystalPlugin.gdap` (`binary_type="local"`) expects exactly that filename;
-   Godot 4.x picks the plugin up automatically at export time. No `.cfg`
-   file is needed; the `.gdap` is the descriptor.
+2. Copy it to `android/plugins/CrystalPlugin.aar`. Two hard requirements
+   discovered the painful way:
+   - **Discovery:** `list_gdap_files()` only scans `android/plugins/*.gdap`
+     *directly* — subdirectories are skipped. The descriptor therefore lives
+     at `android/plugins/CrystalPlugin.gdap` (not nested), and `binary=`
+     resolves relative to it, i.e. `android/plugins/CrystalPlugin.aar`.
+   - **Opt-in:** plugins are enabled per export preset. `export_presets.cfg`
+     must contain `plugins/CrystalPlugin=true`, otherwise the AAR is silently
+     ignored and the APK builds fine *without any plugin classes* (verified:
+     first green APK had zero `crystalnova` strings in classes.dex).
 3. Download the pinned Godot headless editor + export templates; install
    templates to `~/.local/share/godot/export_templates/4.4.1.stable/`.
 4. `export_presets.cfg` (committed at repo root) defines the Android preset:
    package `io.crystalnova.launcher`, versionCode 1 / `0.1.0-beta1`,
    arm64-v8a only, landscape (from `project.godot`), GL Compatibility,
-   signed with a CI-generated debug key (`/home/runner/debug.keystore`,
+   **Gradle build enabled** (`gradle_build/use_gradle_build=true`), signed
+   with a CI-generated debug key (`/home/runner/debug.keystore`,
    android/androiddebugkey — beta signing only, never a store release).
-5. Headless export:
-   `godot --headless --path . --export-release "Android" build/crystal-launcher.apk`
-6. The APK is uploaded as the `crystal-launcher-apk` workflow artifact
+   The Gradle build is **required**: Godot 4.4's prebuilt-APK export path
+   (`use_gradle_build=false`) never merges `.gdap` plugin AARs — only the
+   gradle path calls `get_enabled_plugins()`.
+5. `project.godot` must set
+   `rendering/textures/vram_compression/import_etc2_astc=true`. Without it,
+   `has_valid_project_configuration()` fails `can_export` with an **empty**
+   "configuration errors" message on desktop hosts (headless Linux prefers
+   S3TC) — the single most cryptic failure in this pipeline.
+6. Headless export (the `--install-android-build-template` flag unpacks
+   `android_source.zip` from the templates into `android/build/` so the
+   gradle path validates):
+   `godot --headless --path . --install-android-build-template --export-release "Android" build/crystal-launcher.apk`
+7. The APK is uploaded as the `crystal-launcher-apk` workflow artifact
    (30-day retention). Download it from the Actions run → install on Nova.
 
 Development loop: **commit → GitHub Actions → downloadable APK → install/test on Nova.**
@@ -73,7 +91,9 @@ sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 cd android/plugins/CrystalPlugin
 gradle wrapper --gradle-version 8.10.2   # one-time
 ./gradlew assembleRelease
-cp build/outputs/aar/CrystalPlugin-release.aar CrystalPlugin.aar
+# NOTE: the .gdap lives at android/plugins/CrystalPlugin.gdap (top level —
+# Godot only scans android/plugins/*.gdap), so the AAR goes next to it:
+cp build/outputs/aar/CrystalPlugin-release.aar ../CrystalPlugin.aar
 ```
 
 `compileSdk 34` / `minSdk 24` come from `build.gradle`; the packages above
@@ -84,8 +104,17 @@ are exactly what that needs.
 Needs the Godot 4.4.1-stable editor + 4.4.1-stable export templates from
 https://github.com/godotengine/godot/releases/tag/4.4.1-stable
 (templates → `~/.local/share/godot/export_templates/4.4.1.stable/`), a
-keystore at the path in `export_presets.cfg`, then the headless export
-from the CI section step 5.
+keystore at the path in `export_presets.cfg`, then:
+
+```sh
+godot --headless --path . --install-android-build-template \
+  --export-release "Android" build/crystal-launcher.apk
+```
+
+(`--install-android-build-template` is required: the preset uses the Gradle
+build, which needs `android/build/` unpacked from `android_source.zip`.
+Also ensure `export_presets.cfg` has `plugins/CrystalPlugin=true`, or the
+APK will silently lack the plugin.)
 
 ## Boot-path honesty (already in the POC — do not regress)
 
@@ -101,7 +130,15 @@ There is no stubbed-success path. `failure_screen.gd` shows the message
 verbatim; fatal errors say "Close and restart the app.", recoverable ones
 allow B / Esc to go back.
 
-## Still missing for a Nova-installable APK (product, not build)
+## Build status: GREEN (2026-09-19)
+
+Run `35461097535` produced a verified installable APK (`crystal-launcher-apk`
+artifact, 96.8 MB): package `io.crystalnova.launcher`, versionCode 1 /
+`0.1.0-beta1`, minSdk 24 / targetSdk 34, arm64-v8a, debug-key signed
+(APK Signature Scheme v2), and `Lio/crystalnova/launcher/plugin/CrystalPlugin;`
+confirmed present in classes.dex.
+
+## Still missing (product, not build)
 
 - The Nova itself: install APK, grant storage access, point it at real
   `crystal-nova-data/` (needs Phase 1's `config.json` / `profiles.json`
