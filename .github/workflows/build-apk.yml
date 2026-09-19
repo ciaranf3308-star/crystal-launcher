@@ -5,8 +5,10 @@
 #   build-tools 34.0.0 | Gradle 8.10.2 | Godot 4.4.1-stable + 4.4.1 export templates
 #   AGP 8.5.2 + Kotlin 1.9.24 are pinned in android/plugins/CrystalPlugin/settings.gradle.
 #
-# Pipeline: build CrystalPlugin AAR -> drop it where the .gdap expects it ->
-# headless Godot export -> signed (debug-key) APK artifact.
+# Pipeline: build CrystalPlugin AAR -> drop it next to the .gdap ->
+# install Android build template -> headless Godot export (GRADLE build:
+# required — Godot 4.4's prebuilt-APK path ignores .gdap plugins) ->
+# signed (debug-key) APK artifact.
 
 name: build-apk
 
@@ -70,9 +72,10 @@ jobs:
           cd android/plugins/CrystalPlugin
           gradle assembleRelease --no-daemon --console=plain
           ls -la build/outputs/aar/
-          # The .gdap expects exactly this filename next to it.
-          cp build/outputs/aar/CrystalPlugin-release.aar CrystalPlugin.aar
-          ls -la CrystalPlugin.aar
+          # The .gdap (android/plugins/CrystalPlugin.gdap) resolves
+          # binary="CrystalPlugin.aar" relative to its own directory.
+          cp build/outputs/aar/CrystalPlugin-release.aar ../CrystalPlugin.aar
+          ls -la ../CrystalPlugin.aar
 
       - name: Install Godot 4.4.1 headless editor
         run: |
@@ -119,8 +122,11 @@ jobs:
         run: |
           set -eux
           mkdir -p build
+          # --install-android-build-template unpacks android_source.zip into
+          # android/build/ so the gradle path (required for plugin AARs) works.
           "Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             --headless --path . \
+            --install-android-build-template \
             --export-release "Android" build/crystal-launcher.apk
           ls -la build/crystal-launcher.apk
 
