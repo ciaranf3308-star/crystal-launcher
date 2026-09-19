@@ -25,4 +25,7 @@ android {
 dependencies {
     // Provided by the Godot Android export: org.godotengine:godot:4.4.1.stable
     compileOnly 'org.godotengine:godot:4.4.1.stable'
+    // SAF tree traversal (DocumentFile) for the launcher's own persisted
+    // grant to the Manager-owned Crystal data folder.
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }

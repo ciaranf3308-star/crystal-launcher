@@ -64,6 +64,20 @@ keystore, headless `--export-release`) produces `crystal-launcher.apk`
 (verified: real APK, plugin class in classes.dex, arm64 Godot runtime).
 Local builds deprecated — CI is the only build path.
 
+Status 2026-09-19 (storage contract fix): first Nova boot proved the
+Manager's SAF grant does NOT transfer to the launcher (separate app) and
+raw /storage access is blocked by scoped storage — auto-discovery found
+nothing and the POC fixture's literal `/storage/XXXX-XXXX/` placeholder
+leaked into the error. Fixed properly: the launcher now holds its OWN
+persisted SAF grant. First launch shows a one-time system folder picker
+("SELECT CRYSTAL DATA FOLDER"); the plugin persists the tree URI and all
+reads (config.json, index.json, profiles.json, artwork bytes) go through
+the ContentResolver as tree-relative paths (`saf://` backend in
+CrystalData, SAF decode in TextureCache). No broad/all-files access. The
+`res://poc-config.json` fallback is now desktop-only — on Android without
+a grant the setup screen shows instead of fake data. Version 0.2.0-beta1
+(versionCode 2).
+
 Work (launcher project, isolated):
 - Build `android/plugins/CrystalPlugin/` to AAR (needs Android SDK — local or CI).
   Surface: `launchEmulator(profileJson, romPath)`, `getInstalledPackages()`,

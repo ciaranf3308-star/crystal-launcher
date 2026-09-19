@@ -127,14 +127,38 @@ func _worker() -> void:
 		var path: String = job[1]
 		var max_size: int = job[2]
 		var img: Image = null
-		if FileAccess.file_exists(path):
+		if path.begins_with("saf://"):
+			# Android SAF grant: bytes come from the plugin's
+			# ContentResolver read; Godot's FileAccess can't see them.
+			var bytes: PackedByteArray = CrystalPlugin.saf_read_bytes(path.trim_prefix("saf://"))
+			img = _image_from_bytes(bytes)
+		elif FileAccess.file_exists(path):
 			img = Image.load_from_file(path)
-			if img != null and max_size > 0:
-				if img.get_width() > max_size or img.get_height() > max_size:
-					var scale := minf(float(max_size) / img.get_width(),
-						float(max_size) / img.get_height())
-					img.resize(int(img.get_width() * scale),
-						int(img.get_height() * scale), Image.INTERPOLATE_BILINEAR)
+		if img != null and max_size > 0:
+			if img.get_width() > max_size or img.get_height() > max_size:
+				var scale := minf(float(max_size) / img.get_width(),
+					float(max_size) / img.get_height())
+				img.resize(int(img.get_width() * scale),
+					int(img.get_height() * scale), Image.INTERPOLATE_BILINEAR)
 		_mutex.lock()
 		_pending.append([key, img])
 		_mutex.unlock()
+
+
+## Decode an image from raw bytes (SAF reads). Sniffs the container magic —
+## Godot 4 has no generic load-from-buffer, so each format is tried by its
+## signature. Returns null when the bytes aren't a decodable image.
+static func _image_from_bytes(bytes: PackedByteArray) -> Image:
+	if bytes.size() < 16:
+		return null
+	var img := Image.new()
+	var err := ERR_INVALID_DATA
+	if bytes[0] == 0x89 and bytes[1] == 0x50 and bytes[2] == 0x4E and bytes[3] == 0x47:
+		err = img.load_png_from_buffer(bytes)
+	elif bytes[0] == 0xFF and bytes[1] == 0xD8:
+		err = img.load_jpg_from_buffer(bytes)
+	elif bytes[0] == 0x52 and bytes[1] == 0x49 and bytes[2] == 0x46 and bytes[3] == 0x46:
+		err = img.load_webp_from_buffer(bytes)
+	if err != OK:
+		return null
+	return img
