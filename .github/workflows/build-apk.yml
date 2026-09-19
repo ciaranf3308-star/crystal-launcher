@@ -133,6 +133,25 @@ jobs:
             --export-release "Android" build/crystal-launcher.apk
           ls -la build/crystal-launcher.apk
 
+      - name: Verify CrystalPlugin registered in APK
+        run: |
+          set -eux
+          # Beta1–beta3 shipped a silent failure: the plugin's classes were
+          # merged into the dex but the engine never registered the
+          # singleton, because the AAR manifest lacked the
+          # org.godotengine.plugin.v1.* meta-data Godot scans for at
+          # startup. Assert on the merged manifest's string pool (binary
+          # XML: UTF-8 or UTF-16), not on the dex.
+          python3 - <<'EOF'
+          import sys, zipfile
+          with zipfile.ZipFile("build/crystal-launcher.apk") as z:
+              manifest = z.read("AndroidManifest.xml")
+          needle = b"org.godotengine.plugin.v1.CrystalPlugin"
+          ok = needle in manifest or needle.decode().encode("utf-16-le") in manifest
+          print("plugin meta-data present:", ok)
+          sys.exit(0 if ok else 1)
+          EOF
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
