@@ -30,7 +30,7 @@ scenes/
   failure_screen.tscn/.gd   honest failure surface
 models/ps2/README.md        spec for the authored PS2 case+disc set (pending)
 launcher_configs/intents.json  reference intent recipes (informative)
-android/plugins/CrystalPlugin/ Kotlin plugin: launchEmulator, getInstalledPackages (AAR build pending)
+android/plugins/CrystalPlugin/ Kotlin plugin: launchEmulator, getInstalledPackages (AAR build pending — see android/plugins/CrystalPlugin/BUILD.md for exact steps)
 poc-config.json             local fixture mirroring contract §3 (dev only)
 ```
 

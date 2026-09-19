@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimal manifest for the CrystalPlugin library AAR.
+     The namespace is declared in build.gradle; this file exists because
+     the Android Gradle Plugin requires a manifest for library modules. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+</manifest>

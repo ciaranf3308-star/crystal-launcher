@@ -1,0 +1,24 @@
+// Standalone build for the CrystalPlugin AAR.
+// Run Gradle from THIS directory (android/plugins/CrystalPlugin).
+// Plugin versions are pinned here so the build is reproducible.
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+    plugins {
+        id 'com.android.library' version '8.5.2'
+        id 'org.jetbrains.kotlin.android' version '1.9.24'
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'CrystalPlugin'
